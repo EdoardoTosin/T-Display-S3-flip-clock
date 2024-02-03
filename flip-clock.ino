@@ -13,6 +13,7 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
+#include "arduino_secrets.h"
 #include "factory_gui.h"
 #include "pin_config.h"
 #include "sntp.h"
@@ -26,7 +27,7 @@ static bool is_initialized_lvgl = false;
 OneButton button1(PIN_BUTTON_1, true);
 OneButton button2(PIN_BUTTON_2, true);
 
-
+int gmt_offset_sec_final = GMT_OFFSET_SEC * 1;
 
 #if defined(TOUCH_MODULES_CST_MUTUAL)
 TouchLib touch(Wire, PIN_IIC_SDA, PIN_IIC_SCL, CTS328_SLAVE_ADDRESS, PIN_TOUCH_RES);
@@ -92,7 +93,15 @@ void setup() {
   Serial.begin(115200);
 
   sntp_servermode_dhcp(1); // (optional)
-  configTime(GMT_OFFSET_SEC, DAY_LIGHT_OFFSET_SEC, NTP_SERVER1, NTP_SERVER2);
+  time_t now;
+  time(&now);
+  struct tm* timeinfo = localtime(&now);
+  if (timeinfo->tm_isdst > 0) {
+	gmt_offset_sec_final = GMT_OFFSET_SEC * 2; // DST is in effect, so offset is +2 hours
+  } else {
+	gmt_offset_sec_final = GMT_OFFSET_SEC * 1; // DST is not in effect, so offset is +1 hour
+  }
+  configTime(gmt_offset_sec_final, DAY_LIGHT_OFFSET_SEC, NTP_SERVER1, NTP_SERVER2);
 
   pinMode(PIN_LCD_RD, OUTPUT);
   digitalWrite(PIN_LCD_RD, HIGH);

@@ -1,8 +1,5 @@
 #pragma once
 
-#define WIFI_SSID                    "your-SSID"
-#define WIFI_PASSWORLD               "Your wifi password"
-
 #define WIFI_CONNECT_WAIT_MAX        (30 * 1000)
 
 #define NTP_SERVER1                  "pool.ntp.org"
