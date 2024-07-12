@@ -17,6 +17,9 @@
 #include "pin_config.h"
 #include "sntp.h"
 #include "time.h"
+#include <HTTPClient.h>  // To make HTTP requests
+
+const char* GEO_API_URL = "http://ip-api.com/json";  // API to get location based on IP
 
 esp_lcd_panel_io_handle_t io_handle = NULL;
 static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
@@ -26,8 +29,11 @@ static bool is_initialized_lvgl = false;
 OneButton button1(PIN_BUTTON_1, true);
 OneButton button2(PIN_BUTTON_2, true);
 
+<<<<<<< Updated upstream
 
 
+=======
+>>>>>>> Stashed changes
 #if defined(TOUCH_MODULES_CST_MUTUAL)
 TouchLib touch(Wire, PIN_IIC_SDA, PIN_IIC_SCL, CTS328_SLAVE_ADDRESS, PIN_TOUCH_RES);
 #elif defined(TOUCH_MODULES_CST_SELF)
@@ -43,6 +49,7 @@ void wifi_test(void);
 void timeavailable(struct timeval *t);
 void printLocalTime();
 void SmartConfig();
+void syncTime();
 
 static bool example_notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx) {
   if (is_initialized_lvgl) {
@@ -91,9 +98,12 @@ void setup() {
   digitalWrite(PIN_POWER_ON, HIGH);
   Serial.begin(115200);
 
+<<<<<<< Updated upstream
   sntp_servermode_dhcp(1); // (optional)
   configTime(GMT_OFFSET_SEC, DAY_LIGHT_OFFSET_SEC, NTP_SERVER1, NTP_SERVER2);
 
+=======
+>>>>>>> Stashed changes
   pinMode(PIN_LCD_RD, OUTPUT);
   digitalWrite(PIN_LCD_RD, HIGH);
   esp_lcd_i80_bus_handle_t i80_bus = NULL;
@@ -318,7 +328,35 @@ void wifi_test(void) {
     lv_label_set_text(log_label, text.c_str());
   }
   LV_DELAY(2000);
+  syncTime();  // Call syncTime function to sync the time
   ui_begin();
+}
+
+void syncTime() {
+  HTTPClient http;
+  http.begin(GEO_API_URL);
+  int httpCode = http.GET();
+  if (httpCode > 0) {
+    String payload = http.getString();
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, payload);
+    float lat = doc["lat"];
+    float lon = doc["lon"];
+    String timezone = doc["timezone"];
+
+    Serial.println("Latitude: " + String(lat));
+    Serial.println("Longitude: " + String(lon));
+    Serial.println("Timezone: " + timezone);
+
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+    setenv("TZ", timezone.c_str(), 1);
+    tzset();
+
+    printLocalTime();
+  } else {
+    Serial.println("Failed to get location");
+  }
+  http.end();
 }
 
 void printLocalTime() {
@@ -329,6 +367,7 @@ void printLocalTime() {
   }
   Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
 }
+
 // Callback function (get's called when time adjusts via NTP)
 void timeavailable(struct timeval *t) {
   Serial.println("Got time adjustment from NTP!");
